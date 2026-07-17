@@ -18,7 +18,10 @@ import app.tasks  # noqa: E402, F401
 
 celery_app.conf.update(
     task_track_started=True,
+    task_acks_late=True,
+    task_reject_on_worker_lost=True,
     task_serializer="json",
     result_serializer="json",
     accept_content=["json"],
-)
+    broker_transport_options={"visibility_timeout": 30},  # Redis-specific: redeliver unacked after 30s
+)   
