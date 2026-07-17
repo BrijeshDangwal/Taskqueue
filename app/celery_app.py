@@ -15,3 +15,10 @@ celery_app.autodiscover_tasks(["app"])
 
 # Import tasks so they register when the worker starts.
 import app.tasks  # noqa: E402, F401
+
+celery_app.conf.update(
+    task_track_started=True,
+    task_serializer="json",
+    result_serializer="json",
+    accept_content=["json"],
+)
