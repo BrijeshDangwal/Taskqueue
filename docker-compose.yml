@@ -1,0 +1,21 @@
+services:
+  redis:
+    image: redis:7
+    container_name: taskqueue-redis
+    ports:
+      - "6379:6379"
+
+  postgres:
+    image: postgres:16
+    container_name: taskqueue-postgres
+    environment:
+      POSTGRES_USER: taskqueue
+      POSTGRES_PASSWORD: taskqueue
+      POSTGRES_DB: taskqueue
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

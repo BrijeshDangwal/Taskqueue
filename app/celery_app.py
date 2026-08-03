@@ -32,3 +32,5 @@ celery_app.conf.update(
     },
     worker_prefetch_multiplier=1,
 )   
+
+import app.signals  # noqa: E402, F401 — register lifecycle signal handlers
