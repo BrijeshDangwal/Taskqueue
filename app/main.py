@@ -27,11 +27,14 @@ def health():
 def submit_task(payload: TaskSubmit, response: Response):
     """Accept a job, enqueue it, hand back a receipt.
 
-    Returns 202 — NOT 200 — because the work is accepted, not completed.
+     # Route to a named queue based on priority. Each priority is a
+    # physically separate Redis list — that's what prevents a slow
+    # low-priority job from blocking high-priority work (head-of-line blocking).
     """
-    async_result = slow_task.delay(payload.seconds)
-
-    # The 'here's how to find out' half of the 202 contract.
+    async_result = slow_task.apply_async(
+        args=[payload.seconds],
+        queue=payload.priority,   # "high" | "normal" | "low"
+    )
     response.headers["Location"] = f"/tasks/{async_result.id}"
 
     return TaskSubmitResponse(task_id=async_result.id, status="queued")

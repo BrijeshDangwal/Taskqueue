@@ -24,4 +24,11 @@ celery_app.conf.update(
     result_serializer="json",
     accept_content=["json"],
     broker_transport_options={"visibility_timeout": 30},  # Redis-specific: redeliver unacked after 30s
+    task_default_queue="normal",
+    task_queues={
+    "high": {},
+    "normal": {},
+    "low": {},
+    },
+    worker_prefetch_multiplier=1,
 )   

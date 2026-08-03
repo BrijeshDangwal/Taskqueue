@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any, Optional, Literal
 from pydantic import BaseModel, Field
 
 
@@ -9,6 +9,10 @@ class TaskSubmit(BaseModel):
         ge=1,
         le=60,
         description="How long the simulated work should take.",
+    )
+    priority: Literal["high", "normal", "low"] = Field(
+        default="normal",
+        description="Which lane to route this job into.",
     )
 
 

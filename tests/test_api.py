@@ -24,3 +24,20 @@ def test_submit_task_returns_202_and_valid_id():
 def test_submit_rejects_invalid_payload():
     r = client.post("/tasks", json={"seconds": 999})
     assert r.status_code == 422
+
+
+def test_submit_accepts_priority():
+    r = client.post("/tasks", json={"seconds": 1, "priority": "high"})
+    assert r.status_code == 202
+    assert r.json()["status"] == "queued"
+
+
+def test_submit_rejects_invalid_priority():
+    r = client.post("/tasks", json={"seconds": 1, "priority": "urgent"})
+    assert r.status_code == 422   # not a valid lane
+
+
+def test_submit_defaults_to_normal_priority():
+    # omitting priority should still work (backwards compatible)
+    r = client.post("/tasks", json={"seconds": 1})
+    assert r.status_code == 202
