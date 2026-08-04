@@ -9,13 +9,24 @@ from app.schemas import TaskSubmit, TaskSubmitResponse, TaskStatusResponse
 from app.tasks import slow_task
 from app.db import get_db
 from app.models import Job
+from prometheus_fastapi_instrumentator import Instrumentator
+from app.metrics import update_queue_depths
 
 app = FastAPI(
     title="Distributed Task Queue",
     description="Submit long-running jobs; poll for results.",
     version="0.2.0",
 )
+# Auto-instrument all HTTP endpoints and expose /metrics.
+# This gives request count, latency histograms, and in-progress counts for free.
+Instrumentator().instrument(app).expose(app)
 
+@app.middleware("http")
+async def refresh_metrics(request, call_next):
+    # Keep queue-depth gauges current on every request (incl. /metrics scrapes)
+    update_queue_depths()
+    response = await call_next(request)
+    return response
 
 @app.get("/health")
 def health():
