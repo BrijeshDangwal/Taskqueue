@@ -1,8 +1,14 @@
 import json
+import logging
+from fastapi import Request
+from fastapi.responses import JSONResponse
+
+logger = logging.getLogger("taskqueue")
+
 from datetime import datetime
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, Response, Depends, status
+from fastapi import FastAPI, HTTPException, Response, Depends, status, Query
 from sqlalchemy.orm import Session
 
 from app.schemas import TaskSubmit, TaskSubmitResponse, TaskStatusResponse
@@ -12,11 +18,33 @@ from app.models import Job
 from prometheus_fastapi_instrumentator import Instrumentator
 from app.metrics import update_queue_depths
 
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+
+
+# Rate limiter keyed by client IP. Protects against the DoS vector the
+# load test exposed — a single client flooding POST /tasks.
+limiter = Limiter(key_func=get_remote_address)
+
+
 app = FastAPI(
     title="Distributed Task Queue",
     description="Submit long-running jobs; poll for results.",
     version="0.2.0",
 )
+
+
+@app.exception_handler(Exception)
+async def generic_exception_handler(request: Request, exc: Exception):
+    # Log the real error server-side (for you), return an opaque message to the client.
+    logger.error(f"Unhandled error on {request.url.path}: {exc}", exc_info=True)
+    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
+
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 # Auto-instrument all HTTP endpoints and expose /metrics.
 # This gives request count, latency histograms, and in-progress counts for free.
 Instrumentator().instrument(app).expose(app)
@@ -39,7 +67,8 @@ def health():
     response_model=TaskSubmitResponse,
     status_code=status.HTTP_202_ACCEPTED,
 )
-def submit_task(payload: TaskSubmit, response: Response, db: Session = Depends(get_db)):
+@limiter.limit("10/second")
+def submit_task(request:Request, payload: TaskSubmit, response: Response, db: Session = Depends(get_db)):
     """Accept a job, record it in Postgres, enqueue it, return a receipt.
 
     Recording the row here is what lets GET return a real 404 for unknown
@@ -88,7 +117,7 @@ def get_task_status(task_id: str, db: Session = Depends(get_db)):
 @app.get("/tasks")
 def list_tasks(
     status: Optional[str] = None,
-    limit: int = 20,
+    limit: int = Query(default=20, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
     """List jobs, optionally filtered by status — impossible with Redis,
