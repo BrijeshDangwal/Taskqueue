@@ -5,7 +5,13 @@ from app.config import settings
 
 # The engine: SQLAlchemy's core connection to Postgres.
 # It manages a pool of connections under the hood.
-engine = create_engine(settings.DATABASE_URL, pool_pre_ping=True)
+engine = create_engine(
+    settings.DATABASE_URL,
+    pool_pre_ping=True,
+    pool_size=20,          # persistent connections kept open (was default 5)
+    max_overflow=40,       # extra connections allowed under burst (was default 10)
+    pool_timeout=30,       # seconds to wait for a connection before erroring
+)
 
 # A session factory. Each request/task gets its own session (unit of work)
 # to run queries and commit changes.
