@@ -1,0 +1,107 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 760" width="1120" height="760" font-family="'Segoe UI', Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/>
+    </marker>
+    <marker id="arrowLight" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8"/>
+    </marker>
+  </defs>
+
+  <rect width="1120" height="760" fill="#ffffff"/>
+
+  <text x="560" y="42" text-anchor="middle" font-size="22" font-weight="700" fill="#0f172a">Distributed Task Queue — Architecture</text>
+  <text x="560" y="66" text-anchor="middle" font-size="13" fill="#64748b">Async job submission · priority routing · durable state · full observability</text>
+
+  <text x="40" y="112" font-size="12" font-weight="700" fill="#94a3b8" letter-spacing="1">REQUEST PATH</text>
+
+  <rect x="40" y="130" width="150" height="86" rx="10" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="115" y="164" text-anchor="middle" font-size="15" font-weight="600" fill="#0f172a">Client</text>
+  <text x="115" y="185" text-anchor="middle" font-size="11" fill="#64748b">POST /tasks</text>
+  <text x="115" y="201" text-anchor="middle" font-size="11" fill="#64748b">poll GET /tasks/{id}</text>
+
+  <rect x="252" y="118" width="216" height="110" rx="10" fill="#ecfdf5" stroke="#059669" stroke-width="2"/>
+  <text x="360" y="146" text-anchor="middle" font-size="15" font-weight="700" fill="#065f46">FastAPI (producer)</text>
+  <text x="360" y="168" text-anchor="middle" font-size="11" fill="#047857">202 Accepted + task_id</text>
+  <text x="360" y="186" text-anchor="middle" font-size="11" fill="#047857">Pydantic validation</text>
+  <text x="360" y="204" text-anchor="middle" font-size="11" fill="#047857">rate limit to 429</text>
+  <text x="360" y="220" text-anchor="middle" font-size="11" fill="#047857">exposes /metrics</text>
+
+  <rect x="530" y="112" width="212" height="122" rx="10" fill="#fef2f2" stroke="#dc2626" stroke-width="2"/>
+  <text x="636" y="138" text-anchor="middle" font-size="15" font-weight="700" fill="#991b1b">Redis — Broker</text>
+  <rect x="548" y="150" width="176" height="24" rx="5" fill="#fee2e2" stroke="#fca5a5"/>
+  <text x="636" y="167" text-anchor="middle" font-size="11" fill="#991b1b">lane: high</text>
+  <rect x="548" y="178" width="176" height="24" rx="5" fill="#fee2e2" stroke="#fca5a5"/>
+  <text x="636" y="195" text-anchor="middle" font-size="11" fill="#991b1b">lane: normal</text>
+  <rect x="548" y="206" width="176" height="24" rx="5" fill="#fee2e2" stroke="#fca5a5"/>
+  <text x="636" y="223" text-anchor="middle" font-size="11" fill="#991b1b">lane: low</text>
+
+  <rect x="806" y="118" width="274" height="110" rx="10" fill="#f0fdf4" stroke="#16a34a" stroke-width="2"/>
+  <text x="943" y="146" text-anchor="middle" font-size="15" font-weight="700" fill="#166534">Celery Workers</text>
+  <text x="943" y="168" text-anchor="middle" font-size="11" fill="#15803d">prefork pool · scale horizontally</text>
+  <text x="943" y="186" text-anchor="middle" font-size="11" fill="#15803d">-Q high,normal,low (priority order)</text>
+  <text x="943" y="204" text-anchor="middle" font-size="11" fill="#15803d">acks_late · prefetch=1</text>
+  <text x="943" y="220" text-anchor="middle" font-size="11" fill="#15803d">idempotent execution</text>
+
+  <line x1="192" y1="173" x2="248" y2="173" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="470" y1="173" x2="526" y2="173" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="498" y="164" text-anchor="middle" font-size="10" fill="#64748b">LPUSH</text>
+  <line x1="802" y1="173" x2="746" y2="173" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="774" y="164" text-anchor="middle" font-size="10" fill="#64748b">BRPOP</text>
+  <text x="774" y="192" text-anchor="middle" font-size="10" fill="#94a3b8">(workers pull)</text>
+
+  <text x="40" y="322" font-size="12" font-weight="700" fill="#94a3b8" letter-spacing="1">STATE</text>
+
+  <rect x="252" y="340" width="290" height="106" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+  <text x="397" y="368" text-anchor="middle" font-size="14" font-weight="700" fill="#1e40af">PostgreSQL — system of record</text>
+  <text x="397" y="390" text-anchor="middle" font-size="11" fill="#1d4ed8">jobs table · durable history</text>
+  <text x="397" y="408" text-anchor="middle" font-size="11" fill="#1d4ed8">indexed: status, created_at</text>
+  <text x="397" y="426" text-anchor="middle" font-size="11" fill="#1d4ed8">Alembic migrations · real 404s</text>
+
+  <rect x="806" y="340" width="274" height="80" rx="10" fill="#fef2f2" stroke="#dc2626" stroke-width="2" stroke-dasharray="5,3"/>
+  <text x="943" y="368" text-anchor="middle" font-size="14" font-weight="700" fill="#991b1b">Redis — Result Backend</text>
+  <text x="943" y="390" text-anchor="middle" font-size="11" fill="#991b1b">celery-task-meta-{id}</text>
+  <text x="943" y="408" text-anchor="middle" font-size="11" fill="#b91c1c">ephemeral (Postgres is truth)</text>
+
+  <line x1="330" y1="232" x2="330" y2="336" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="322" y="288" text-anchor="end" font-size="10" fill="#64748b">INSERT on submit</text>
+  <line x1="392" y1="336" x2="392" y2="232" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="400" y="288" text-anchor="start" font-size="10" fill="#64748b">SELECT on status</text>
+
+  <path d="M 900 232 L 900 300 L 500 300 L 500 336" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="700" y="292" text-anchor="middle" font-size="10" fill="#64748b">lifecycle signals to UPDATE (STARTED / SUCCESS / FAILURE)</text>
+
+  <line x1="990" y1="232" x2="990" y2="336" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="1000" y="288" text-anchor="start" font-size="10" fill="#64748b">SET result</text>
+
+  <text x="40" y="530" font-size="12" font-weight="700" fill="#94a3b8" letter-spacing="1">OBSERVABILITY</text>
+
+  <rect x="252" y="548" width="216" height="96" rx="10" fill="#fff7ed" stroke="#ea580c" stroke-width="2"/>
+  <text x="360" y="576" text-anchor="middle" font-size="15" font-weight="700" fill="#9a3412">Prometheus</text>
+  <text x="360" y="598" text-anchor="middle" font-size="11" fill="#c2410c">scrapes /metrics every 5s</text>
+  <text x="360" y="616" text-anchor="middle" font-size="11" fill="#c2410c">counters · gauges · histograms</text>
+  <text x="360" y="634" text-anchor="middle" font-size="11" fill="#c2410c">custom queue-depth per lane</text>
+
+  <rect x="530" y="548" width="212" height="96" rx="10" fill="#fefce8" stroke="#ca8a04" stroke-width="2"/>
+  <text x="636" y="576" text-anchor="middle" font-size="15" font-weight="700" fill="#854d0e">Grafana</text>
+  <text x="636" y="598" text-anchor="middle" font-size="11" fill="#a16207">queue depth by lane</text>
+  <text x="636" y="616" text-anchor="middle" font-size="11" fill="#a16207">throughput · p95 latency</text>
+  <text x="636" y="634" text-anchor="middle" font-size="11" fill="#a16207">dashboard as code (JSON)</text>
+
+  <rect x="806" y="548" width="274" height="96" rx="10" fill="#faf5ff" stroke="#9333ea" stroke-width="2"/>
+  <text x="943" y="576" text-anchor="middle" font-size="15" font-weight="700" fill="#6b21a8">Locust</text>
+  <text x="943" y="598" text-anchor="middle" font-size="11" fill="#7e22ce">load generation and bottleneck</text>
+  <text x="943" y="616" text-anchor="middle" font-size="11" fill="#7e22ce">analysis · 54k requests</text>
+  <text x="943" y="634" text-anchor="middle" font-size="11" fill="#7e22ce">168 RPS · 0 failures</text>
+
+  <path d="M 282 232 L 282 470 L 300 470 L 300 544" fill="none" stroke="#94a3b8" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#arrowLight)"/>
+  <text x="292" y="500" text-anchor="start" font-size="10" fill="#94a3b8">/metrics</text>
+
+  <line x1="470" y1="596" x2="526" y2="596" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="498" y="587" text-anchor="middle" font-size="10" fill="#64748b">PromQL</text>
+
+  <path d="M 943 544 L 943 500 L 620 500 L 620 470 L 420 470 L 420 232" fill="none" stroke="#c4b5fd" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#arrowLight)"/>
+  <text x="700" y="464" text-anchor="middle" font-size="10" fill="#a78bfa">synthetic load</text>
+
+  <text x="560" y="712" text-anchor="middle" font-size="11.5" fill="#64748b">All six services orchestrated by a single <tspan font-weight="700" fill="#334155">docker compose up</tspan> — API, worker, Redis, PostgreSQL, Prometheus, Grafana</text>
+</svg>
